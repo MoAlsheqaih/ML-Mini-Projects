@@ -1,0 +1,10 @@
+# Datasets downloaded at runtime
+*.gz
+*-ubyte
+
+# Notebook + OS cruft
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
