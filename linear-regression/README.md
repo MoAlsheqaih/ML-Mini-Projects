@@ -1,6 +1,6 @@
 # Linear Regression
 
-Least-squares regression built from the ground up, then compared against the library implementation.
+Two notebooks on linear models. The first builds least-squares regression from the ground up and compares it against the library implementation. The second pushes a linear model into overfitting on purpose, then pulls it back with regularization.
 
 Coursework for ICS485 (Machine Learning), KFUPM.
 
@@ -48,13 +48,38 @@ At n=20 the model fits its training data far better than anything it hasn't seen
 
 A closing section works through what changes when the units of `y` or of an individual feature change, and why no retraining is required in either case.
 
+## `house-prices-ridge-lasso.ipynb` — overfitting on purpose, then fixing it
+
+House price prediction on a deliberately small dataset (20 training rows, in `LandPriceTrain.csv` and `LandPriceTest.csv`). The notebook is structured as a sequence of diagnoses, each motivating the next step.
+
+**Underfitting.** The constant model gives a test MSE of 3.54e9. Adding the raw features drops it to 1.59e8 — a large gain, but train and test errors are both still high, which is the signature of a model too simple for the data.
+
+**Overcorrecting.** Expanding to polynomial features (20×9) cuts train MSE to 2.15e7 while test MSE sits at 9.45e7. Train error has fallen roughly 4× further than test error. The model is now memorizing 20 points.
+
+**Ridge.** Sweeping the penalty:
+
+| alpha | Train MSE | Test MSE |
+|:---|:---|:---|
+| 0.01 | 2.155e7 | 9.435e7 |
+| 0.1 | 2.155e7 | 9.359e7 |
+| 0.5 | 2.158e7 | 9.170e7 |
+| 1.0 | 2.159e7 | 9.006e7 |
+| 5.0 | 2.176e7 | 8.100e7 |
+| 10.0 | 2.206e7 | **7.395e7** |
+
+Train error barely moves while test error falls 22%. That asymmetry is the whole argument for regularization: the penalty costs almost nothing on data the model has already seen, and buys a lot on data it hasn't.
+
+**Lasso.** With a much larger penalty scale, Lasso goes further, reaching a test MSE of 5.26e7 at alpha=2000 — better than any Ridge setting tried. The mechanism differs too: Lasso drives coefficients to exactly zero rather than merely shrinking them, so by alpha=1150 only a handful of features remain active and the model has performed its own feature selection. Push alpha too far and it discards useful features as well, and both errors climb again.
+
+The closing section documents the bias–variance reading of these sweeps: how alpha trades one for the other, and why Ridge and Lasso arrive at different answers on the same data.
+
 ---
 
-## Running this
+## Running these
 
 ```bash
 pip install numpy scikit-learn matplotlib
-jupyter notebook diabetes-least-squares.ipynb
+jupyter notebook
 ```
 
-`diabetes-data.csv` is included and is read from the notebook's directory.
+`diabetes-data.csv`, `LandPriceTrain.csv` and `LandPriceTest.csv` are included and are read from the notebooks' directory.
