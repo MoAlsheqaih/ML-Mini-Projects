@@ -1,6 +1,6 @@
 # Logistic Regression and SVM
 
-Classification with linear models and kernels, starting from a binary problem that a straight line cannot solve.
+Classification with linear models and kernels, starting from a binary problem that a straight line cannot solve. Two notebooks reach nearly the same accuracy by opposite routes: one builds polynomial features explicitly, the other lets a kernel do it implicitly.
 
 Coursework for ICS485 (Machine Learning), KFUPM.
 
@@ -34,6 +34,32 @@ Each polynomial expansion is standard-scaled with a scaler fit on the training s
 
 The notebook closes by plotting the learned decision boundary over the test points.
 
+
+## `synthetic-binary-svm.ipynb` — letting the kernel do the expansion
+
+The same dataset and the same splits, approached differently. Instead of building polynomial features by hand and feeding them to a linear model, an SVM can reach the same higher-dimensional space through its kernel, without ever constructing the features. Comparing kernels on the validation set:
+
+| Kernel | Train acc | Validation acc |
+|:---|:---|:---|
+| Linear | 0.5455 | 0.5455 |
+| Polynomial, degree 2 | 0.5824 | 0.5682 |
+| Polynomial, degree 3 | 0.5994 | 0.5682 |
+| Polynomial, degree 4 | 0.7131 | 0.6932 |
+| Polynomial, degree 5 | 0.5938 | 0.5568 |
+| Polynomial, degree 6 | 0.7045 | 0.6591 |
+| **RBF** | **0.8466** | **0.8182** |
+
+Selected the RBF kernel, giving **0.8364 test accuracy** after refitting on train and validation combined.
+
+The linear kernel lands at 0.5455, essentially the majority-class baseline — the same verdict the logistic regression notebook reached at degree 1, arrived at from the other direction. The polynomial kernels are erratic rather than monotone: degree 4 does reasonably at 0.6932 while degree 5 collapses back to 0.5568, which is what happens when the kernel's implicit feature space is a poor match for the geometry and the fit becomes unstable.
+
+RBF wins comfortably, and that makes sense for this data. Its implicit feature space is infinite-dimensional and its similarity measure is local, so it can wrap a boundary around clusters instead of trying to fit one global polynomial surface through them.
+
+Set the two notebooks side by side and the comparison is the real result: degree-5 polynomial logistic regression reaches 0.85 test accuracy, the RBF SVM reaches 0.8364. Practically a tie — but the logistic regression needed an explicit search over polynomial degrees and materialised every one of those features in memory, while the SVM got there with one kernel choice and no feature construction at all.
+
+The notebook ends by plotting the RBF decision boundary over the test points, which shows the closed, curved regions a local kernel produces.
+
+
 ---
 
 ## Data
@@ -45,7 +71,7 @@ The notebook closes by plotting the learned decision boundary over the test poin
 
 ```bash
 pip install numpy pandas scikit-learn matplotlib seaborn
-jupyter notebook synthetic-binary-logistic-regression.ipynb
+jupyter notebook
 ```
 
 Data files are read from the notebook's directory.
