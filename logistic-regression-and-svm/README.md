@@ -1,6 +1,6 @@
 # Logistic Regression and SVM
 
-Classification with linear models and kernels, starting from a binary problem that a straight line cannot solve. Three notebooks: two reach nearly the same accuracy on a binary problem by opposite routes, and a third moves to real multi-class satellite data.
+Classification with linear models and kernels, starting from a binary problem that a straight line cannot solve. Four notebooks. The first two reach nearly the same accuracy on a binary problem by opposite routes, one expanding features explicitly and the other letting a kernel do it implicitly. The second pair repeats the comparison on real multi-class satellite data, where the kernel wins and it is possible to see exactly which classes the gain comes from.
 
 Coursework for ICS485 (Machine Learning), KFUPM.
 
@@ -93,6 +93,30 @@ The per-class breakdown is where it gets interesting:
 86% overall accuracy hides a class that barely works. Damp grey soil is recovered only a third of the time, with 35 of its samples predicted as very damp soil. That is not a modelling accident — the three grey-soil classes differ by moisture content, which shifts the spectral signature only slightly, so a linear boundary in these 36 features cannot cleanly separate them.
 
 The gap between macro average (0.81 F1) and weighted average (0.85 F1) is the same story in one number: the big, easy classes are carrying the headline figure.
+
+
+## `satimage-multiclass-svm.ipynb` — where the non-linear gain actually lands
+
+The same data and splits, with an SVM grid over `C` in {0.1, 1, 10, 100} crossed with linear, polynomial (degrees 2 to 4) and RBF kernels. Best configuration: **C=100 with an RBF kernel**, at 0.9098 validation and **0.9098 test accuracy**.
+
+Two results are worth separating.
+
+**The linear kernel confirms the previous notebook.** It peaks at 0.8703 validation, right alongside logistic regression's 0.8611. Two different algorithms drawing linear boundaries land in the same place, which is what you would hope for and a decent sanity check on both.
+
+**The improvement is not spread evenly.** Overall accuracy rises from 86.11% to 90.98%, but look at where:
+
+| Class | Logistic regression F1 | SVM F1 |
+|:---|:---|:---|
+| 1 red soil | 0.97 | 0.98 |
+| 2 cotton crop | 0.95 | 0.96 |
+| 3 grey soil | 0.90 | 0.92 |
+| 4 damp grey soil | 0.42 | **0.66** |
+| 5 veg stubble | 0.80 | **0.90** |
+| 7 very damp soil | 0.85 | 0.90 |
+
+The easy classes barely move. Nearly all of the gain sits in damp grey soil and vegetation stubble, precisely the two classes the linear model handled worst. Class 4 to Class 7 confusion drops from 35 cases to 14. The non-linear boundary is doing work exactly where a linear one was failing, which is the strongest evidence that the classes are not linearly separable rather than simply under-tuned.
+
+Damp grey soil remains the hardest class at 0.66 F1 even after the improvement. Some of that boundary is genuinely ambiguous in this feature space.
 
 ---
 
