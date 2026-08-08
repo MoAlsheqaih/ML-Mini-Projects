@@ -1,6 +1,6 @@
 # Logistic Regression and SVM
 
-Classification with linear models and kernels, starting from a binary problem that a straight line cannot solve. Two notebooks reach nearly the same accuracy by opposite routes: one builds polynomial features explicitly, the other lets a kernel do it implicitly.
+Classification with linear models and kernels, starting from a binary problem that a straight line cannot solve. Three notebooks: two reach nearly the same accuracy on a binary problem by opposite routes, and a third moves to real multi-class satellite data.
 
 Coursework for ICS485 (Machine Learning), KFUPM.
 
@@ -60,12 +60,46 @@ Set the two notebooks side by side and the comparison is the real result: degree
 The notebook ends by plotting the RBF decision boundary over the test points, which shows the closed, curved regions a local kernel produces.
 
 
+
+## `satimage-multiclass-logistic-regression.ipynb` — six classes, real data
+
+Landsat satellite imagery from the Statlog (Landsat Satellite) dataset: 6,435 samples, 36 features (four spectral bands for each of the nine pixels in a 3x3 neighbourhood), and six land-cover classes, from red soil to cotton crop to three grades of grey soil. Split 70 / 15 / 15, stratified, `random_state=777`.
+
+Sweeping the inverse-regularization strength `C`:
+
+| C | Validation accuracy |
+|:---|:---|
+| 0.001 | 0.8039 |
+| 0.01 | 0.8216 |
+| 0.1 | 0.8402 |
+| 1 | 0.8548 |
+| **10** | **0.8589** |
+| 100 | 0.8568 |
+| 1000 | 0.8579 |
+
+Selected C=10, giving **0.8611 test accuracy**. The curve is shallow past C=1, so regularization strength is not what limits this model.
+
+The per-class breakdown is where it gets interesting:
+
+| Class | Precision | Recall | F1 | Support |
+|:---|:---|:---|:---|:---|
+| 1 red soil | 0.96 | 0.99 | 0.97 | 230 |
+| 2 cotton crop | 0.95 | 0.94 | 0.95 | 105 |
+| 3 grey soil | 0.88 | 0.92 | 0.90 | 204 |
+| 4 damp grey soil | 0.53 | 0.34 | **0.42** | 94 |
+| 5 veg stubble | 0.83 | 0.77 | 0.80 | 106 |
+| 7 very damp soil | 0.81 | 0.90 | 0.85 | 226 |
+
+86% overall accuracy hides a class that barely works. Damp grey soil is recovered only a third of the time, with 35 of its samples predicted as very damp soil. That is not a modelling accident — the three grey-soil classes differ by moisture content, which shifts the spectral signature only slightly, so a linear boundary in these 36 features cannot cleanly separate them.
+
+The gap between macro average (0.81 F1) and weighted average (0.85 F1) is the same story in one number: the big, easy classes are carrying the headline figure.
+
 ---
 
 ## Data
 
 - `synthetic_binary.csv` — the two-feature binary set used above
-- `186_satimage.csv` — Statlog (Landsat Satellite), used by the multiclass work in this folder
+- `186_satimage.csv` — Statlog (Landsat Satellite), 6,435 samples across six land-cover classes
 
 ## Running this
 
