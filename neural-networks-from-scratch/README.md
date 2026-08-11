@@ -1,6 +1,6 @@
 # Neural Networks From Scratch
 
-Building the machinery of a neural network by hand in numpy: forward propagation, the cost function, backpropagation, and gradient descent, with no library model doing the work. Two notebooks so far, working up from a single neuron to a one-hidden-layer network on the same dataset, which makes the comparison between them a controlled one.
+Building the machinery of a neural network by hand in numpy: forward propagation, the cost function, backpropagation, and gradient descent, with no library model doing the work. Three notebooks so far, working up from a single neuron to a one-hidden-layer network on the same dataset, then extending that network to multiclass classification on a different one.
 
 Coursework for ICS485 (Machine Learning), KFUPM.
 
@@ -64,12 +64,42 @@ ReLU comes out ahead on test accuracy, but the honest reading is that 96.49% and
 
 Logistic regression initializes its weights to zeros, and that is safe. This network cannot: with all weights at zero every hidden unit computes the same value, receives the same gradient, and stays identical forever, leaving a network no more expressive than the single neuron it was supposed to improve on. Small random values break that symmetry, and the 0.01 scale keeps `tanh` in its steep central region rather than saturated at the tails.
 
+
+## `vehicle-silhouettes-multiclass.ipynb` — four classes instead of two
+
+The same network extended to multiclass, on the Vehicle Silhouettes dataset: 846 samples, 18 shape features extracted from vehicle outlines at varying angles, four classes (double-decker bus, Chevrolet van, Saab 9000, Opel Manta). Split 70/15/15 with seed 777, stratified.
+
+Two changes turn the binary network into a multiclass one. **Softmax** replaces the sigmoid at the output, so four units produce a distribution summing to one instead of a single probability, and **categorical cross-entropy** replaces binary cross-entropy as the cost.
+
+Everything else is untouched, and the reason is worth stating: the gradient of categorical cross-entropy with respect to the output pre-activation collapses to `dZ2 = A2 - Y`, exactly the expression the binary network already used. The softmax Jacobian and the derivative of the log cancel. The backward pass genuinely does not change.
+
+Trained with 20 hidden units at a learning rate of 0.1 for 5,000 iterations, the cost falls from 1.386 to 0.157 and the model reaches **85.04% test accuracy**.
+
+That starting cost is a useful check in itself. $\ln(4) = 1.3863$ is the cross-entropy of a uniform distribution over four classes, which is exactly what a network initialized with near-zero weights should produce. Seeing 1.3860 at iteration 0 confirms the softmax and the cost function are wired up correctly before a single gradient step has been taken.
+
+### The errors are not spread evenly
+
+| Class | Precision | Recall | F1 | Support |
+|:---|:---|:---|:---|:---|
+| bus | 1.00 | 1.00 | **1.00** | 32 |
+| van | 1.00 | 0.93 | **0.97** | 30 |
+| opel | 0.73 | 0.69 | 0.71 | 32 |
+| saab | 0.70 | 0.79 | 0.74 | 33 |
+
+Bus and van are essentially solved: 32 of 32 buses correct, and not a single false positive for either class. Opel and Saab sit around 0.71 and 0.74, and the confusion matrix shows they are being mistaken almost entirely for each other.
+
+That split is a property of the data rather than a failure of the model. A double-decker bus and a van have silhouettes unlike anything else in the set, while the Saab 9000 and the Opel Manta are both saloon cars of similar proportion — from many viewing angles their outlines genuinely overlap, and the 18 shape features do not carry enough information to separate them. Any classifier working from these features would run into the same wall.
+
+The classes are close to balanced (30 to 33 samples each in the test set), which is why macro and weighted averages agree at 0.85. No class is being propped up by size.
+
+**One caveat worth stating plainly:** a validation split is created but never used. The hyper-parameters here are fixed by hand rather than tuned, so the 85.04% is an honest test result but not an optimized one.
+
 ---
 
 ## Data
 
 - `Airfoil.csv` — NASA airfoil self-noise measurements, used for the regression work in this folder
-- `Vehicles.csv` — Vehicle Silhouettes, used for the multiclass work in this folder
+- `Vehicles.csv` — Vehicle Silhouettes, 846 samples, 18 features, four vehicle types
 
 ## Running this
 
