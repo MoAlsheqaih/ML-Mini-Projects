@@ -1,6 +1,6 @@
 # Neural Networks From Scratch
 
-Building the machinery of a neural network by hand in numpy: forward propagation, the cost function, backpropagation, and gradient descent, with no library model doing the work. Three notebooks so far, working up from a single neuron to a one-hidden-layer network on the same dataset, then extending that network to multiclass classification on a different one.
+Building the machinery of a neural network by hand in numpy: forward propagation, the cost function, backpropagation, and gradient descent, with no library model doing the work. Four notebooks, working up from a single neuron to a one-hidden-layer network, then taking that same network to multiclass classification and to regression by changing only its output layer and cost.
 
 Coursework for ICS485 (Machine Learning), KFUPM.
 
@@ -33,7 +33,6 @@ The training curve tells the other half of the story. Cost is still decreasing a
 
 Everything is vectorised, with no Python loops over training examples.
 
-
 ## `breast-cancer-neural-network.ipynb` — adding a hidden layer
 
 The same dataset, now with a one-hidden-layer network: 10 `tanh` units feeding a sigmoid output, trained for 10,000 iterations at a learning rate of 0.01. Written in numpy throughout, including backpropagation.
@@ -64,7 +63,6 @@ ReLU comes out ahead on test accuracy, but the honest reading is that 96.49% and
 
 Logistic regression initializes its weights to zeros, and that is safe. This network cannot: with all weights at zero every hidden unit computes the same value, receives the same gradient, and stays identical forever, leaving a network no more expressive than the single neuron it was supposed to improve on. Small random values break that symmetry, and the 0.01 scale keeps `tanh` in its steep central region rather than saturated at the tails.
 
-
 ## `vehicle-silhouettes-multiclass.ipynb` — four classes instead of two
 
 The same network extended to multiclass, on the Vehicle Silhouettes dataset: 846 samples, 18 shape features extracted from vehicle outlines at varying angles, four classes (double-decker bus, Chevrolet van, Saab 9000, Opel Manta). Split 70/15/15 with seed 777, stratified.
@@ -94,18 +92,41 @@ The classes are close to balanced (30 to 33 samples each in the test set), which
 
 **One caveat worth stating plainly:** a validation split is created but never used. The hyper-parameters here are fixed by hand rather than tuned, so the 85.04% is an honest test result but not an optimized one.
 
+## `airfoil-noise-regression.ipynb` — the same network, predicting a number
+
+The last variation, on the NASA Airfoil Self-Noise dataset: 1,503 wind tunnel measurements, five features (frequency, angle of attack, chord length, free-stream velocity, suction side displacement thickness), predicting the scaled sound pressure level in decibels. Split 70/15/15 with seed 777.
+
+Going from classification to regression takes two changes, and they mirror the multiclass ones:
+
+- **The output activation is removed entirely.** `A2 = Z2`, a linear output, because the target is an unbounded real number rather than a probability.
+- **Mean squared error replaces cross-entropy** as the cost.
+
+And once again the backward pass is unchanged. `dZ2 = A2 - Y` holds for a linear output with MSE just as it did for sigmoid with binary cross-entropy and softmax with categorical cross-entropy. That is not a coincidence: each of those three activation and cost pairings is chosen precisely so the terms cancel this way, which is why one backpropagation implementation serves all three notebooks.
+
+**The target is scaled too**, not just the features. Sound pressure levels average about 125 dB, and feeding a target that large into a network whose weights start near zero produces enormous initial gradients. Standardizing the target keeps the optimization well conditioned; predictions are then inverse-transformed back to decibels before the error is reported, so the final numbers are in real physical units.
+
+Trained with 25 hidden units at a learning rate of 0.05 for 15,000 iterations, the cost falls from 0.4999 to 0.0853 and the model reaches **6.73 MSE and 2.02 MAE on the test set, in decibels**.
+
+The starting cost is another free correctness check, in the same spirit as $\ln(4)$ in the multiclass notebook. With a standardized target the variance is 1, and with near-zero weights the network predicts approximately zero, so the MSE cost of $\frac{1}{2m}\sum(A^{[2]} - Y)^2$ should begin at about **0.5**. It begins at 0.4999.
+
+An average error of about 2 dB on measurements spanning 103.4 to 141.0 dB (standard deviation 6.9 dB) is a reasonable result for a network with one hidden layer and no tuning. MAE being well below the square root of MSE (2.02 against 2.59) indicates the error distribution has a tail: most predictions are closer than 2 dB, with a smaller number of larger misses pulling the squared error up.
+
+**Same caveat as the multiclass notebook:** the validation split is created but never used, so these are honest test numbers from hand-picked hyper-parameters rather than tuned ones.
+
 ---
 
 ## Data
 
-- `Airfoil.csv` — NASA airfoil self-noise measurements, used for the regression work in this folder
+- `Airfoil.csv` — NASA Airfoil Self-Noise, 1,503 samples, five features, sound pressure level in decibels
 - `Vehicles.csv` — Vehicle Silhouettes, 846 samples, 18 features, four vehicle types
 
-## Running this
+The breast cancer data loads directly from scikit-learn.
+
+## Running these
 
 ```bash
 pip install numpy scikit-learn matplotlib pandas seaborn
 jupyter notebook
 ```
 
-The breast cancer data loads directly from scikit-learn; the CSV files are read from the notebook's directory.
+The CSV files are read from the notebook's directory.
