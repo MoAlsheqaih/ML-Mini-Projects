@@ -1,6 +1,6 @@
 # Decision Trees and Ensembles
 
-Tree-based classifiers compared on a large multi-class problem, then the same algorithm rebuilt from scratch.
+Tree-based classifiers compared on a large multi-class problem, then the algorithm itself rebuilt from scratch. One notebook uses the library and asks which ensemble wins; the other builds a decision tree by hand and reads what it learned.
 
 Coursework for ICS485 (Machine Learning), KFUPM.
 
@@ -43,6 +43,31 @@ Two things stand out. `entropy` clearly beats `gini` here — 0.7717 against 0.7
 
 The comparison across folders is the more interesting one. The from-scratch neural network in `neural-networks-from-scratch/` reaches **85.04%** on this same dataset and split, against this tuned decision tree's **75.59%**. A single tree partitions the feature space with axis-aligned cuts, and vehicle silhouettes are described by continuous shape ratios where the informative boundaries are oblique. The network can form those boundaries directly; the tree has to approximate them with staircases, and 846 samples is not enough data to build a good staircase.
 
+
+## `lending-club-decision-tree.ipynb` — the algorithm itself, written out
+
+A binary decision tree built from scratch in numpy and pandas, with no scikit-learn model in the pipeline. Every piece is implemented by hand: counting mistakes under a majority-class rule, selecting the best splitting feature, growing the tree recursively, walking it to make predictions, and evaluating it.
+
+The data is [LendingClub](https://www.lendingclub.com/) peer-to-peer loans, predicting whether a loan turns out safe or risky from four categorical variables: loan grade, term length, home ownership, and years of employment. One-hot encoding turns those four into **24 binary features**, and the majority class is undersampled to a balanced **46,300 loans** (50/50), split 37,038 train / 9,262 test.
+
+Restricting the tree to binary features is what keeps the implementation tractable. It removes both multiple children per split and threshold search for continuous features, so the recursion is a clean two-way branch at every node. Three stopping conditions end it: a pure node, no features left, or a depth cap of 6.
+
+**Test set classification error: 0.3788**, so about 62% accuracy.
+
+That number deserves its context rather than a flourish. The dataset was balanced on purpose, so chance is 50% and a majority-class baseline sits there too. Four categorical variables and a depth-6 tree buy roughly 12 points over guessing. That is a real signal and a modest one, which is the honest description of what loan grade and term tell you about default risk without income, amount, or credit history in the feature set.
+
+### What the tree learned
+
+The root splits on **`term. 36 months`**. Out of all 24 binary features, loan term is the most informative single question, ahead of every loan grade.
+
+Following the left-most branch, the first three splits are `term. 36 months == 0`, then `grade.A == 0`, then `grade.B == 0`. The tree walks the loan grades in alphabetical order, which is also their quality order.
+
+That ordering is worth pausing on. One-hot encoding destroyed the ordinal relationship: `grade.A` through `grade.G` arrived as seven independent binary columns with nothing to say that A outranks B. The tree reconstructed the ranking anyway, purely from how each grade separates safe loans from risky ones. Nobody told it the grades were ordered, and it found the order.
+
+The right-most branch behaves differently: `term. 36 months == 1`, then `grade.D == 1`, then a leaf. Short-term grade-D loans are decidable in two questions, while the long-term branch keeps interrogating grade after grade.
+
+Four `Test passed!` checkpoints verify the mistake counter, the split selector and the tree builder against known answers before the full tree is grown.
+
 ---
 
 ## Data
@@ -56,7 +81,7 @@ Covertype is fetched by scikit-learn on first run and cached locally.
 
 ```bash
 pip install numpy pandas scikit-learn matplotlib
-jupyter notebook covertype-ensembles.ipynb
+jupyter notebook
 ```
 
-Be aware that the grid searches in this notebook are genuinely slow — bagging fits 60 trees per configuration across 54 configurations on 49,500 samples. Expect hours for a full re-run, not minutes.
+Be aware that the grid searches in `covertype-ensembles.ipynb` are genuinely slow — bagging fits 60 trees per configuration across 54 configurations on 49,500 samples. Expect hours for a full re-run, not minutes.
